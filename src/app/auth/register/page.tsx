@@ -12,7 +12,7 @@ import {
 import * as Yup from 'yup';
 import { useFormik } from 'formik';
 import Toastify from "toastify-js";
-import { useAppDispatch } from '@/app/redux/hook';
+import { useAppDispatch } from '@/redux/hook';
 import { useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import { registerUser } from './utils/registerUser';

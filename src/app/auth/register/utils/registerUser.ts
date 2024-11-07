@@ -2,8 +2,8 @@
 import axios, { AxiosError } from 'axios';
 import Cookies from 'js-cookie';
 import Toastify from 'toastify-js';
-import { setUser } from '@/app/redux/feature/user/userSlice';
-import { AppDispatch } from '@/app/redux/store';
+import { setUser } from '@/redux/feature/user/userSlice';
+import { AppDispatch } from '@/redux/store';
 
 interface RegisterValues {
     name: string;

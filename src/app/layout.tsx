@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Providers } from "./redux/provider";
+import { Providers } from "../redux/provider";
 import "toastify-js/src/toastify.css";
 
 export const metadata: Metadata = {
