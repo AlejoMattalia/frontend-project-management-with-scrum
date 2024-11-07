@@ -1,9 +1,6 @@
-'use client'
+'use client';
 
-import EmailIcon from '@mui/icons-material/Email';
-import PersonIcon from '@mui/icons-material/Person';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { useEffect, useState } from 'react';
 import {
     InputAdornment,
     TextField,
@@ -12,43 +9,36 @@ import {
     OutlinedInput,
     IconButton,
 } from "@mui/material";
-import axios from 'axios';
-import { useFormik } from 'formik';
-import { useState } from 'react';
 import * as Yup from 'yup';
+import { useFormik } from 'formik';
 import Toastify from "toastify-js";
-import Cookies from "js-cookie";
 import { useAppDispatch } from '@/app/redux/hook';
-import { setUser } from '@/app/redux/feature/user/userSlice';
 import { useRouter } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
+import { registerUser } from './utils/registerUser';
+import GoogleIcon from '@mui/icons-material/Google';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import EmailIcon from '@mui/icons-material/Email';
+import PersonIcon from '@mui/icons-material/Person';
 
 export default function Page() {
+    const { data: session } = useSession();
     const [showPassword, setShowPassword] = useState(false);
-
     const dispatch = useAppDispatch();
     const router = useRouter();
 
-    // Funciones para mostrar y ocultar la contraseña
     const handleClickShowPassword = () => setShowPassword(!showPassword);
-    const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
-        event.preventDefault();
-    };
+    const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => event.preventDefault();
 
-    // Esquema de validación con Yup
     const validationSchema = Yup.object({
         name: Yup.string().required('El nombre es obligatorio'),
         image_url: Yup.string().required('La URL de la imagen es obligatoria'),
-        email: Yup.string()
-            .email('Correo electrónico inválido')
-            .required('El correo electrónico es obligatorio'),
-        password: Yup.string()
-            .min(6, 'La contraseña debe tener al menos 8 caracteres')
-            .max(20, 'La contraseña debe tener menos de 20 caracteres')
-            .required('La contraseña es obligatoria'),
+        email: Yup.string().email('Correo electrónico inválido').required('El correo electrónico es obligatorio'),
+        password: Yup.string().min(6, 'La contraseña debe tener al menos 8 caracteres').max(20, 'La contraseña debe tener menos de 20 caracteres').required('La contraseña es obligatoria'),
     });
 
-    // Configuración de Formik
     const formik = useFormik({
         initialValues: {
             name: '',
@@ -58,50 +48,54 @@ export default function Page() {
         },
         validationSchema,
         onSubmit: async (values) => {
-            try {
-                const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}auth/register`, values);
-
-
-                Toastify({
-                    text: res.data.message,
-                    duration: 3000,
-                    close: true,
-                    gravity: "top",
-                    position: "right",
-                    stopOnFocus: true,
-                    style: {
-                        background: "#25D366",
-                    },
-                }).showToast();
-
-                Cookies.set('token', res.data.token);
-                dispatch(setUser(res.data.user));
-                router.push('/');
-            } catch (err) {
-                console.log(err);
-                if (err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'message' in err.response.data) {
-                    Toastify({
-                        text: (err.response.data as { message: string }).message,
-                        duration: 3000,
-                        close: true,
-                        gravity: "top",
-                        position: "right",
-                        stopOnFocus: true,
-                        style: {
-                            background: "red",
-                        },
-                    }).showToast();
-                }
+            const success = await registerUser({ values, dispatch });
+            if (success) {
+                router.push('/'); // Redirige solo si el registro es exitoso
             }
-        },
+        }
     });
 
+    const handleGoogleSignIn = async () => {
+        try {
+            await signIn('google');
+        } catch (error) {
+            console.log(error);
+            Toastify({
+                text: "Error al iniciar sesión con Google",
+                duration: 3000,
+                close: true,
+                gravity: "top",
+                position: "right",
+                stopOnFocus: true,
+                style: { background: "red" },
+            }).showToast();
+        }
+    };
+
+    useEffect(() => {
+        const registerWithGoogleSession = async () => {
+            if (session?.user) {
+                const values = {
+                    name: session.user.name ?? '',
+                    image_url: session.user.image ?? '',
+                    email: session.user.email ?? '',
+                    password: session.user.name ?? '',
+                };
+
+                if (!values.name || !values.email || !values.password || !values.image_url) return;
+
+                const success = await registerUser({ values, dispatch });
+                if (success) router.push('/');
+            }
+        };
+        registerWithGoogleSession();
+    }, [session, dispatch, router]);
 
     return (
         <section className="min-h-screen flex items-center justify-center p-3 ">
-            <div className="flex flex-col w-full max-w-[600px] bg-darkGray p-10 rounded-xl relative bottom-20">
+            <div className="flex flex-col w-full max-w-[600px] bg-darkGray p-10 rounded-xl">
                 <h1 className="text-3xl font-bold mb-10">Registrarse</h1>
-                <form className='flex flex-col gap-5 w-full' onSubmit={formik.handleSubmit}>
+                <form className="flex flex-col gap-5 w-full" onSubmit={formik.handleSubmit}>
                     <TextField
                         label="Nombre"
                         id="name"
@@ -119,7 +113,6 @@ export default function Page() {
                             ),
                         }}
                     />
-
                     <TextField
                         label="URL de la imagen"
                         id="image_url"
@@ -137,7 +130,6 @@ export default function Page() {
                             ),
                         }}
                     />
-
                     <TextField
                         label="Email"
                         id="email"
@@ -182,23 +174,20 @@ export default function Page() {
                             <p className="text-[#f44336] text-[0.75rem] relative left-[14px] mt-0.5">{formik.errors.password}</p>
                         )}
                     </FormControl>
-                    {/* <div>
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={formik.values.role === 'admin'}
-                                    onChange={handleRoleChange}
-                                />
-                            }
-                            label="Administrador"
-                        />
-                    </div> */}
-                    <button type="submit" className="bg-blue-500 text-white p-2 rounded">
-                        Registrarse
+                    <button type="submit" className="bg-blue-500 text-white p-2 rounded">Registrarse</button>
+
+                    <p className="flex items-center justify-center">-- o --</p>
+
+                    <button
+                        type="button"
+                        className="bg-[#0062ff] text-white p-2 rounded flex items-center gap-2 justify-center cursor-pointer"
+                        onClick={handleGoogleSignIn}
+                    >
+                        <GoogleIcon /> Registrarse con Google
                     </button>
 
-                    <p className='text-sm'>
-                        ¿Ya ténes una cuenta?{' '}
+                    <p className="text-sm">
+                        ¿Ya tienes una cuenta?{' '}
                         <span onClick={() => router.push('/auth/login')} className="text-blue-500 cursor-pointer">
                             Iniciar sesión
                         </span>

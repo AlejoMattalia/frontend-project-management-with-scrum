@@ -11,17 +11,18 @@ import {
     OutlinedInput,
     IconButton,
 } from "@mui/material";
-import axios from 'axios';
 import { useFormik } from 'formik';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as Yup from 'yup';
 import Toastify from "toastify-js";
-import Cookies from "js-cookie";
 import { useAppDispatch } from '@/app/redux/hook';
-import { setUser } from '@/app/redux/feature/user/userSlice';
 import { useRouter } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
+import GoogleIcon from '@mui/icons-material/Google';
+import { loginUser } from './utils/loginUser';
 
 export default function Page() {
+    const { data: session } = useSession();
     const [showPassword, setShowPassword] = useState(false);
 
     const dispatch = useAppDispatch();
@@ -51,49 +52,52 @@ export default function Page() {
         },
         validationSchema,
         onSubmit: async (values) => {
-            try {
-
-                const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}auth/login`, values);
-
-                Toastify({
-                    text: res.data.message,
-                    duration: 3000,
-                    close: true,
-                    gravity: "top",
-                    position: "right",
-                    stopOnFocus: true,
-                    style: {
-                        background: "#25D366",
-                    },
-                }).showToast();
-
-                Cookies.set('token', res.data.token);
-                dispatch(setUser(res.data.user));
-                router.push('/');
-            }
-            catch (err) {
-                console.log(err)
-                if (err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'message' in err.response.data) {
-                    Toastify({
-                        text: (err.response.data as { message: string }).message,
-                        duration: 3000,
-                        close: true,
-                        gravity: "top",
-                        position: "right",
-                        stopOnFocus: true,
-                        style: {
-                            background: "red",
-                        },
-                    }).showToast();
-                }
+            const success = await loginUser({ values, dispatch });
+            if (success) {
+                router.push('/'); // Redirige solo si el registro es exitoso
             }
         },
     });
 
 
+    const handleGoogleSignIn = async () => {
+        try {
+            await signIn('google');
+        } catch (error) {
+            console.log(error);
+            Toastify({
+                text: "Error al iniciar sesión con Google",
+                duration: 3000,
+                close: true,
+                gravity: "top",
+                position: "right",
+                stopOnFocus: true,
+                style: { background: "red" },
+            }).showToast();
+        }
+    };
+
+    useEffect(() => {
+        const registerWithGoogleSession = async () => {
+            if (session?.user) {
+                const values = {
+                    email: session.user.email ?? '',
+                    password: session.user.name ?? '',
+                };
+
+                if (!values.email || !values.password ) return;
+
+                const success = await loginUser({ values, dispatch });
+                if (success) router.push('/');
+            }
+        };
+        registerWithGoogleSession();
+    }, [session, dispatch, router]);
+
+
     return (
         <section className="min-h-screen flex items-center justify-center p-3 ">
-            <div className="flex flex-col w-full max-w-[600px] min-h-[400px] bg-darkGray p-10 rounded-xl relative bottom-20">
+            <div className="flex flex-col w-full max-w-[600px] min-h-[400px] bg-darkGray p-10 rounded-xl">
                 <h1 className="text-3xl font-bold mb-10">Iniciar Sesión</h1>
                 <form className='flex flex-col gap-5 w-full' onSubmit={formik.handleSubmit}>
                     <TextField
@@ -142,6 +146,16 @@ export default function Page() {
                     </FormControl>
                     <button type="submit" className="mt-5 bg-blue-500 text-white p-2 rounded">
                         Iniciar sesion
+                    </button>
+
+                    <p className="flex items-center justify-center">-- o --</p>
+
+                    <button
+                        type="button"
+                        className="bg-[#0062ff] text-white p-2 rounded flex items-center gap-2 justify-center cursor-pointer"
+                        onClick={handleGoogleSignIn}
+                    >
+                        <GoogleIcon /> Iniciar sesión con Google
                     </button>
 
                     <p className='text-sm'>¿No ténes cuenta? <span onClick={() => router.push('/auth/register')} className="text-blue-500 cursor-pointer">Registrate</span></p>
