@@ -1,16 +1,22 @@
-'use client'
+'use client';
 
-import { useAppSelector } from "@/redux/hook";
+import { ModalFriends } from "@/components/modals/modalFriends/ModalFriends";
 
 export default function Home() {
-
-  const user = useAppSelector((state) => state.user);
-
-  console.log(user);
-
+ 
   return (
     <div>
-      <p>Home</p>
+      <ModalFriends />
+      {/* {pendingRequests.length > 0 ? (
+        <ul>
+          {pendingRequests.map((request) => (
+            <li key={request}>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p>No tienes solicitudes pendientes</p>
+      )} */}
     </div>
   );
 }

@@ -21,8 +21,6 @@ export const registerUser = async ({ values, dispatch }: Props): Promise<boolean
     try {
         const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}auth/register`, values);
 
-        console.log(res);
-
         Toastify({
             text: res.data.message,
             duration: 3000,
