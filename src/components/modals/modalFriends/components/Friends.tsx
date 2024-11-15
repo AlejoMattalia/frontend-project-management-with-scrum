@@ -66,7 +66,10 @@ export const Friends = () => {
         sx={{ mt: 1 }}
       />
       <div className='mt-4'>
-        <InfiniteUserScroll users={filteredFriends} friend={true} />
+        {filteredFriends.length === 0 ? (
+          <p className='text-sm'>No tienes amigos</p>
+        ) : <InfiniteUserScroll users={filteredFriends} friend={true} />}
+
       </div>
     </div>
   );
